@@ -40,7 +40,19 @@ class SpringReverb:
     
     
 def load_wav(path):
-   samplerate, data = wavfile.read(path) 
+   
+   samplerate, data = wavfile.read(path)
+   initial_dtype = data.dtype
+   data = data.astype('float64')
+   
+   if initial_dtype != np.dtype('float32'):
+       maximums_per_type = {
+             np.dtype('int32') : 2147483648.,
+             np.dtype('int16') :32768.,
+             np.dtype('uint8') : 256.
+       }
+       data /= maximums_per_type[initial_dtype]
+    
    left_data = data[:, 0].reshape(-1)
    right_data = data[:, 1].reshape(-1)
    return samplerate, left_data, right_data
@@ -53,10 +65,13 @@ def write_wav(path, samplerate, left_signal, right_signal, normalize = None):
                          np.max(np.abs(right_signal)))
         left_signal /= max_values
         right_signal /= max_values
-    
+
     data = np.empty((len(left_signal), 2))
     data[:, 0] = left_signal
     data[:, 1] = right_signal
+    data *= 2147483647.
+    data = data.astype('int32')
+
     wavfile.write(path, samplerate, data)
     
     
